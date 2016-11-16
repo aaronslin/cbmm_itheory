@@ -14,6 +14,8 @@ class ImageInvariants:
 		if height>max_height:
 			self.image = cv2.resize(self.image, (max_height, width*max_height/height))
 
+		#self.image = 255 - self.image
+
 		self.height = self.image.shape[0]
 		self.width = self.image.shape[1]
 
@@ -26,7 +28,7 @@ class ImageInvariants:
 		center = (height/2, width/2)
 
 		rotationMat = cv2.getRotationMatrix2D(center, degrees, 1)
-		rotated = cv2.warpAffine(image, rotationMat, (height, width), 
+		rotated = cv2.warpAffine(image, rotationMat, (width, height), 
 			borderMode=cv2.BORDER_CONSTANT, 
 			borderValue=1)
 		# TUDU: play around with borderMode and borderValue for different backgrounds
@@ -36,25 +38,37 @@ class ImageInvariants:
 
 	def rotateDescriptor(self, numsteps=360):
 		descriptor = [self.dotProduct(self.rotate(deg)) for deg in range(numsteps)]
-		for d in descriptor:
-			print d
 		return descriptor
 
 	def dotProduct(self, other):
-		def L2(x):
-			return np.linalg.norm(x)
-		def L1(x):
-			return np.sum(np.abs(x))
+		def L2():
+			difference = self.image-other
+			similarity = np.apply_along_axis(lambda x: np.linalg.norm(x), 2, difference)
+			return similarity
+		def L1():
+			difference = self.image-other
+			similarity = np.apply_along_axis(lambda x: np.sum(np.abs(x)), 2, difference)
+			return similarity
+		def dot():
+			product = self.image * other
+			similarity = np.apply_along_axis(lambda x: np.sum(x), 2, product)
+			return similarity
 
-		difference = self.image-other
-		similarity = np.apply_along_axis(L2, 2, difference)
-		#print "\t", self.image, other
+		similarity = L1()
 		return np.mean(similarity)
 
 
+# stardavid = ImageInvariants("./data/stardavid.jpg")
+# stardavid.rotateDescriptor()
 
-knight = ImageInvariants("./data/knight1.jpg")
-knight.rotateDescriptor()
+image = ImageInvariants("./data/bishop.png")
+histogram = image.rotateDescriptor()
+
+open("output.txt", "w").close()
+with open("output.txt", "a") as myfile:
+	for h in histogram:
+		myfile.write(str(h)+"\n")
+
 
 
 """
